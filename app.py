@@ -12,14 +12,14 @@ from bootstrap_assets import ensure_runtime_assets
 ensure_runtime_assets()
 
 from rag.retriever_runtime import retrieve_reviews
-from rag.sentiment_analysis import batch_sentiment
+from rag.sentiment_runtime import batch_sentiment
 from rag.synthesizer import (
     synthesize_hybrid_result,
     synthesize_rag_result,
     synthesize_sql_result,
 )
 from rag.theme_extractor import extract_themes
-from router.query_router import extract_subquery, route_query
+from router.query_router_runtime import extract_subquery, route_query
 from sql.executor import execute_sql_with_error
 from sql.nl_to_sql import generate_sql
 from visualization.chart_generator import auto_chart
@@ -515,37 +515,21 @@ def inject_styles() -> None:
 
         [data-testid="stBottom"],
         [data-testid="stBottom"] > div,
-        [data-testid="stBottomBlockContainer"],
-        [data-testid="stBottomBlockContainer"] > div,
-        [data-testid="stChatFloatingInputContainer"] {
+        [data-testid="stChatFloatingInputContainer"],
+        [data-testid="stChatInput"] {
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
         }
 
-        [data-testid="stBottomBlockContainer"]::before,
-        [data-testid="stChatFloatingInputContainer"]::before {
-            content: "";
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 170px;
+        [data-testid="stChatFloatingInputContainer"] {
+            padding: 0.8rem 1rem 1.2rem !important;
             background: linear-gradient(
                 180deg,
                 rgba(247, 248, 251, 0) 0%,
-                rgba(247, 248, 251, 0.92) 32%,
+                rgba(247, 248, 251, 0.9) 34%,
                 rgba(247, 248, 251, 1) 100%
-            );
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        [data-testid="stChatInput"] {
-            background: transparent !important;
-            border-top: none !important;
-            box-shadow: none !important;
-            padding: 1rem 1.2rem 1.5rem;
+            ) !important;
         }
 
         [data-testid="stChatInput"] > div {
@@ -554,24 +538,26 @@ def inject_styles() -> None:
         }
 
         [data-testid="stChatInput"] textarea {
-            border-radius: 4px !important;
+            border-radius: 18px !important;
             border: 1px solid #d8dee8 !important;
-            background: rgba(255, 255, 255, 0.99) !important;
+            background: #ffffff !important;
             color: var(--text) !important;
-            box-shadow: 0 8px 22px rgba(23, 35, 79, 0.08);
+            box-shadow: 0 6px 20px rgba(23, 35, 79, 0.06) !important;
             padding-left: 1rem !important;
+        }
+
+        [data-testid="stChatInput"] textarea:focus,
+        [data-testid="stChatInput"] textarea:focus-visible {
+            border-color: #cbd4e1 !important;
+            box-shadow: 0 6px 20px rgba(23, 35, 79, 0.06) !important;
+            outline: none !important;
         }
 
         [data-testid="stChatInput"] button {
             border-radius: 999px !important;
-        }
-
-        [data-testid="stChatInput"] button[kind="primary"] {
             background: #eef2f8 !important;
-            color: #9aa3b2 !important;
+            color: #7c8698 !important;
             border: none !important;
-            width: 42px !important;
-            height: 42px !important;
         }
 
         [data-testid="stChatMessage"] {
