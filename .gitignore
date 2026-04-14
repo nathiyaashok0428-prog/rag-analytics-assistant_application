@@ -1,0 +1,21 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+Thumbs.db
+
+# Local editor settings
+.vscode/
+
+# Runtime cache / local artifacts
+data/sql_query_cache.json
+data/ecommerce.db
+rag/faiss_index.bin
+rag/review_chunks.pkl
+
+# Optional local notebooks or temp outputs
+*.ipynb_checkpoints

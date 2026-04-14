@@ -1,0 +1,9 @@
+streamlit
+pandas
+numpy
+matplotlib
+plotly
+faiss-cpu
+sentence-transformers
+requests
+scikit-learn
