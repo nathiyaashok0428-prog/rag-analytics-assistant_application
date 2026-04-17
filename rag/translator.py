@@ -1,13 +1,97 @@
+import re
+import unicodedata
+from typing import Final
+
+import requests
+
 # =========================================
-# MULTILINGUAL TRANSLATOR USING OLLAMA
+# MULTILINGUAL TRANSLATOR
 # English ↔ Portuguese
 # =========================================
 
-import requests
-import re
-
-# Ollama local endpoint
-OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_URL: Final[str] = "http://localhost:11434/api/generate"
+MYMEMORY_URL: Final[str] = "https://api.mymemory.translated.net/get"
+GOOGLE_TRANSLATE_URL: Final[str] = "https://translate.googleapis.com/translate_a/single"
+REQUEST_TIMEOUT_SECONDS: Final[int] = 12
+PT_TO_EN_FALLBACK: Final[dict[str, str]] = {
+    "entrega": "delivery",
+    "atrasada": "late",
+    "atraso": "delay",
+    "demorou": "took too long",
+    "produto": "product",
+    "produtos": "products",
+    "danificado": "damaged",
+    "problema": "problem",
+    "problemas": "problems",
+    "cliente": "customer",
+    "clientes": "customers",
+    "pedido": "order",
+    "pedi": "ordered",
+    "email": "email",
+    "responde": "respond",
+    "responder": "respond",
+    "empresa": "company",
+    "fornecedor": "supplier",
+    "devolucao": "return",
+    "reclamacao": "complaint",
+    "nao": "not",
+    "nunca": "never",
+    "ruim": "bad",
+    "e": "and",
+    "com": "with",
+    "sem": "without",
+    "a": "the",
+    "o": "the",
+    "os": "the",
+    "as": "the",
+    "um": "a",
+    "uma": "a",
+    "do": "of the",
+    "da": "of the",
+    "dos": "of the",
+    "das": "of the",
+    "de": "of",
+    "para": "for",
+    "por": "by",
+    "sobre": "about",
+    "ate": "until",
+    "ao": "to the",
+    "emails": "emails",
+}
+EN_TO_PT_FALLBACK: Final[dict[str, str]] = {
+    "delivery": "entrega",
+    "late": "atrasada",
+    "delay": "atraso",
+    "product": "produto",
+    "products": "produtos",
+    "damaged": "danificado",
+    "problem": "problema",
+    "problems": "problemas",
+    "customer": "cliente",
+    "customers": "clientes",
+    "order": "pedido",
+    "email": "email",
+    "respond": "responder",
+    "company": "empresa",
+    "supplier": "fornecedor",
+    "return": "devolucao",
+    "complaint": "reclamacao",
+    "complaints": "reclamacoes",
+    "not": "nao",
+    "never": "nunca",
+    "bad": "ruim",
+    "and": "e",
+    "with": "com",
+    "without": "sem",
+    "the": "o",
+    "a": "um",
+    "of": "de",
+    "for": "para",
+    "by": "por",
+    "about": "sobre",
+    "until": "ate",
+    "to": "para",
+}
 
 
 def clean_translation_output(text):
@@ -24,45 +108,175 @@ def clean_translation_output(text):
     return cleaned
 
 
-# =========================================
-# ENGLISH → PORTUGUESE
-# =========================================
+def _normalize_token(token: str) -> str:
+    normalized = unicodedata.normalize("NFKD", token.lower())
+    return "".join(char for char in normalized if not unicodedata.combining(char))
 
-def translate_to_portuguese(text):
 
+def _dictionary_translate(text: str, dictionary: dict[str, str]) -> str:
+    token_pattern = re.compile(r"\w+|[^\w\s]", flags=re.UNICODE)
+    translated_tokens: list[str] = []
+    for token in token_pattern.findall(text):
+        normalized = _normalize_token(token)
+        translated_tokens.append(dictionary.get(normalized, token))
+
+    translated = " ".join(translated_tokens)
+    translated = re.sub(r"\s+([.,;:!?])", r"\1", translated)
+    return translated
+
+
+def _looks_portuguese(text: str) -> bool:
+    normalized = _normalize_token(text)
+    hints = [
+        " nao ",
+        " entrega ",
+        " cliente ",
+        " produto ",
+        " pedido ",
+        " atras",
+        " reclam",
+        " que ",
+        " para ",
+    ]
+    padded = f" {normalized} "
+    return any(hint in padded for hint in hints)
+
+
+def _looks_english(text: str) -> bool:
+    normalized = _normalize_token(text)
+    hints = [
+        " delivery ",
+        " customer ",
+        " product ",
+        " order ",
+        " complaint ",
+        " and ",
+        " with ",
+        " not ",
+    ]
+    padded = f" {normalized} "
+    return any(hint in padded for hint in hints)
+
+
+def _is_reasonable_translation(candidate: str, source_code: str, target_code: str) -> bool:
+    if not candidate or not candidate.strip():
+        return False
+    if target_code == "en" and _looks_portuguese(candidate) and not _looks_english(candidate):
+        return False
+    if target_code == "pt" and _looks_english(candidate) and not _looks_portuguese(candidate):
+        return False
+    return True
+
+
+def _translate_with_ollama(text: str, source_language: str, target_language: str) -> str | None:
     prompt = f"""
-Translate the following English text to Portuguese.
+Translate the following {source_language} text to {target_language}.
 
-Return ONLY translated Portuguese text.
+Return ONLY translated {target_language} text.
 Do not add notes, explanations, options, or commentary.
 
 Text:
 {text}
 """
 
-    try:
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": "mistral",
+            "prompt": prompt,
+            "stream": False,
+        },
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    translated_text = clean_translation_output(payload.get("response", ""))
+    return translated_text or None
 
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": "mistral",
-                "prompt": prompt,
-                "stream": False
-            }
-        )
 
-        result = response.json()
+def _translate_with_mymemory(text: str, source_code: str, target_code: str) -> str | None:
+    response = requests.get(
+        MYMEMORY_URL,
+        params={"q": text, "langpair": f"{source_code}|{target_code}"},
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    translated_text = clean_translation_output(
+        payload.get("responseData", {}).get("translatedText", "")
+    )
+    return translated_text or None
 
-        translated_text = clean_translation_output(result["response"])
 
-        return translated_text
+def _translate_with_google(text: str, source_code: str, target_code: str) -> str | None:
+    response = requests.get(
+        GOOGLE_TRANSLATE_URL,
+        params={
+            "client": "gtx",
+            "sl": source_code,
+            "tl": target_code,
+            "dt": "t",
+            "q": text,
+        },
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    segments = payload[0] if payload else []
+    translated_text = "".join(
+        segment[0] for segment in segments if isinstance(segment, list) and segment
+    )
+    translated_text = clean_translation_output(translated_text)
+    return translated_text or None
 
-    except Exception as e:
 
-        print("Translation Error:", e)
-
-        # fallback (return original text)
+def _translate(
+    text: str,
+    source_language: str,
+    target_language: str,
+    source_code: str,
+    target_code: str,
+    fallback_dictionary: dict[str, str],
+) -> str:
+    if not text or not text.strip():
         return text
+
+    try:
+        translated = _translate_with_ollama(text, source_language, target_language)
+        if translated and _is_reasonable_translation(translated, source_code, target_code):
+            return translated
+    except Exception:
+        pass
+
+    try:
+        translated = _translate_with_mymemory(text, source_code, target_code)
+        if translated and _is_reasonable_translation(translated, source_code, target_code):
+            return translated
+    except Exception:
+        pass
+
+    try:
+        translated = _translate_with_google(text, source_code, target_code)
+        if translated and _is_reasonable_translation(translated, source_code, target_code):
+            return translated
+    except Exception:
+        pass
+
+    return _dictionary_translate(text, fallback_dictionary)
+
+
+# =========================================
+# ENGLISH → PORTUGUESE
+# =========================================
+def translate_to_portuguese(text):
+    return _translate(
+        text=text,
+        source_language="English",
+        target_language="Portuguese",
+        source_code="en",
+        target_code="pt",
+        fallback_dictionary=EN_TO_PT_FALLBACK,
+    )
 
 
 # =========================================
@@ -70,40 +284,14 @@ Text:
 # =========================================
 
 def translate_to_english(text):
-
-    prompt = f"""
-Translate the following Portuguese text to English.
-
-Return ONLY translated English text.
-Do not add notes, explanations, options, grammar comments, or commentary.
-Preserve the meaning of customer review text as closely as possible.
-
-Text:
-{text}
-"""
-
-    try:
-
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": "mistral",
-                "prompt": prompt,
-                "stream": False
-            }
-        )
-
-        result = response.json()
-
-        translated_text = clean_translation_output(result["response"])
-
-        return translated_text
-
-    except Exception as e:
-
-        print("Translation Error:", e)
-
-        return text
+    return _translate(
+        text=text,
+        source_language="Portuguese",
+        target_language="English",
+        source_code="pt",
+        target_code="en",
+        fallback_dictionary=PT_TO_EN_FALLBACK,
+    )
 
 
 # =========================================

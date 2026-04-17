@@ -513,13 +513,9 @@ def inject_styles() -> None:
             background: #f8fbff;
         }
 
-        [data-testid="stBottom"],
-        [data-testid="stBottom"] > div,
-        [data-testid="stChatFloatingInputContainer"],
-        [data-testid="stChatInput"] {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
+        [data-testid="stBottomBlockContainer"] {
+            max-width: 980px;
+            margin: 0 auto;
         }
 
         [data-testid="stChatFloatingInputContainer"] {
@@ -530,34 +526,50 @@ def inject_styles() -> None:
                 rgba(247, 248, 251, 0.9) 34%,
                 rgba(247, 248, 251, 1) 100%
             ) !important;
+            border-top: none !important;
+        }
+
+        [data-testid="stBottom"],
+        [data-testid="stBottom"] > div {
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
         }
 
         [data-testid="stChatInput"] > div {
-            max-width: 960px;
+            max-width: 980px;
             margin: 0 auto;
+            border-radius: 20px !important;
+            border: 1px solid #d8dee8 !important;
+            background: #ffffff !important;
+            box-shadow: 0 8px 26px rgba(23, 35, 79, 0.1) !important;
+            padding: 0.15rem 0.2rem 0.15rem 0.75rem !important;
+            min-height: 56px !important;
         }
 
         [data-testid="stChatInput"] textarea {
-            border-radius: 18px !important;
-            border: 1px solid #d8dee8 !important;
-            background: #ffffff !important;
+            border-radius: 14px !important;
+            border: none !important;
+            background: transparent !important;
             color: var(--text) !important;
-            box-shadow: 0 6px 20px rgba(23, 35, 79, 0.06) !important;
+            box-shadow: none !important;
             padding-left: 1rem !important;
         }
 
         [data-testid="stChatInput"] textarea:focus,
         [data-testid="stChatInput"] textarea:focus-visible {
-            border-color: #cbd4e1 !important;
-            box-shadow: 0 6px 20px rgba(23, 35, 79, 0.06) !important;
+            border: none !important;
+            box-shadow: none !important;
             outline: none !important;
         }
 
         [data-testid="stChatInput"] button {
             border-radius: 999px !important;
-            background: #eef2f8 !important;
-            color: #7c8698 !important;
+            background: #1677ee !important;
+            color: #ffffff !important;
             border: none !important;
+            min-height: 34px !important;
+            min-width: 34px !important;
         }
 
         [data-testid="stChatMessage"] {
