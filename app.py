@@ -515,16 +515,13 @@ def inject_styles() -> None:
         }
 
         [data-testid="stChatFloatingInputContainer"] {
-            left: 0 !important;
-            right: 0 !important;
-            width: 100% !important;
-            padding: 1rem 0 1.5rem !important;
-            background: linear-gradient(
-                180deg,
-                rgba(247, 248, 251, 0) 0%,
-                rgba(247, 248, 251, 0.9) 34%,
-                rgba(247, 248, 251, 1) 100%
-            ) !important;
+            left: auto !important;
+            right: auto !important;
+            width: min(1120px, calc(100vw - 1.2rem)) !important;
+            margin: 0 auto 0.35rem !important;
+            padding: 0.45rem 0.45rem 0.65rem !important;
+            border-radius: 22px !important;
+            background: rgba(247, 248, 251, 0.95) !important;
             border: none !important;
             box-shadow: none !important;
         }
@@ -626,6 +623,11 @@ def inject_styles() -> None:
 
             [data-testid="stChatInput"] > div {
                 width: calc(100vw - 1.4rem);
+            }
+
+            [data-testid="stChatFloatingInputContainer"] {
+                width: calc(100vw - 0.8rem) !important;
+                padding: 0.4rem 0.35rem 0.55rem !important;
             }
         }
 
