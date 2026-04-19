@@ -685,11 +685,7 @@ def _preferred_template_sql(user_query):
 
 def _call_ollama(prompt):
 
-    result = call_ollama(prompt, timeout=45)
-    if result is None:
-        raise RuntimeError("Ollama call failed")
-
-    return result
+    return call_ollama(prompt, timeout=45)
 
 
 def _can_execute_sql(sql_query):
@@ -730,7 +726,11 @@ Instructions:
 Corrected SQL:
 """
 
-    repaired_sql = sanitize_sql_identifiers(clean_sql_response(_call_ollama(prompt)))
+    repaired_candidate = _call_ollama(prompt)
+    if not repaired_candidate:
+        return bad_sql
+
+    repaired_sql = sanitize_sql_identifiers(clean_sql_response(repaired_candidate))
 
     return repaired_sql
 
@@ -760,7 +760,20 @@ User Question:
 SQL Query:
 """
 
-    sql = sanitize_sql_identifiers(clean_sql_response(_call_ollama(prompt)))
+    llm_response = _call_ollama(prompt)
+    if not llm_response:
+        fallback_sql = _template_sql_fallback(user_query)
+        if fallback_sql:
+            fallback_valid, _ = _can_execute_sql(fallback_sql)
+            if fallback_valid:
+                persist_sql_cache(user_query, fallback_sql)
+                return fallback_sql
+
+        default_sql = "SELECT COUNT(*) AS total_orders FROM orders;"
+        persist_sql_cache(user_query, default_sql)
+        return default_sql
+
+    sql = sanitize_sql_identifiers(clean_sql_response(llm_response))
 
     is_valid, sql_error = _can_execute_sql(sql)
 
