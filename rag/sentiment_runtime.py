@@ -1,11 +1,6 @@
 import re
 
-import requests
-
-from llm_runtime import get_ollama_model, get_ollama_url
-
-OLLAMA_URL = get_ollama_url()
-OLLAMA_MODEL = get_ollama_model()
+from llm_runtime import call_ollama
 ALLOWED_SENTIMENTS = {
     "positive": "Positive",
     "negative": "Negative",
@@ -60,13 +55,9 @@ Review:
 """
 
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            timeout=30,
-        )
-        result = response.json()
-        sentiment = result["response"].strip()
+        sentiment = call_ollama(prompt, timeout=30)
+        if not sentiment:
+            return _keyword_sentiment(review_text)
         return normalize_sentiment(sentiment)
     except Exception as error:
         print("Sentiment Error:", error)

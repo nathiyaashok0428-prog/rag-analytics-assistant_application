@@ -1,11 +1,6 @@
 import re
 
-import requests
-
-from llm_runtime import get_ollama_model, get_ollama_url
-
-OLLAMA_URL = get_ollama_url()
-OLLAMA_MODEL = get_ollama_model()
+from llm_runtime import call_ollama
 ALLOWED_ROUTES = {"SQL", "RAG", "HYBRID", "UNKNOWN"}
 
 SQL_KEYWORDS = {
@@ -68,13 +63,11 @@ User Query:
 {user_query}
 """
 
-    response = requests.post(
-        OLLAMA_URL,
-        json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-        timeout=30,
-    )
-    result = response.json()["response"].strip().upper()
-    return result if result in ALLOWED_ROUTES else "UNKNOWN"
+    result = call_ollama(prompt, timeout=30)
+    if not result:
+        return "UNKNOWN"
+    normalized = result.upper()
+    return normalized if normalized in ALLOWED_ROUTES else "UNKNOWN"
 
 
 def route_query(user_query):
@@ -128,12 +121,7 @@ Rewritten Query:
 """
 
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            timeout=30,
-        )
-        result = response.json()["response"].strip()
+        result = call_ollama(prompt, timeout=30)
         return result or user_query
     except Exception:
         return user_query
