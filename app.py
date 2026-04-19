@@ -75,18 +75,18 @@ def inject_styles() -> None:
         """
         <style>
         :root {
-            --bg: #f7f8fb;
-            --panel: #ffffff;
-            --sidebar: #ffffff;
-            --border: #dde2ea;
-            --text: #1f2329;
-            --muted: #6f7682;
-            --subtle: #8e95a3;
-            --blue: #1677ee;
-            --blue-soft: #eaf3ff;
+            --bg: #020817;
+            --panel: #0b1225;
+            --sidebar: #060d1d;
+            --border: #223252;
+            --text: #edf2ff;
+            --muted: #b9c6de;
+            --subtle: #94a4c2;
+            --blue: #3b82f6;
+            --blue-soft: #172554;
             --accent: #1677ee;
             --accent-2: #0f5fc7;
-            --shadow: 0 12px 34px rgba(23, 35, 79, 0.08);
+            --shadow: 0 12px 34px rgba(2, 8, 23, 0.55);
             --chat-max-width: 1080px;
             --chat-desktop-gutter: 24rem;
         }
@@ -300,11 +300,11 @@ def inject_styles() -> None:
             align-items: center;
             gap: 0.65rem;
             border-radius: 18px;
-            background: #f4f6fb;
+            background: #0e1730;
             color: var(--subtle);
             padding: 0.85rem 1rem;
             margin-bottom: 1rem;
-            border: 1px solid #edf1f7;
+            border: 1px solid var(--border);
         }
 
         .sidebar-profile {
@@ -393,10 +393,10 @@ def inject_styles() -> None:
             max-width: min(760px, 92%);
             padding: 0.9rem 1.15rem;
             border-radius: 20px;
-            background: #ffffff;
+            background: #111c37;
             border: 1px solid var(--border);
             color: var(--text);
-            box-shadow: 0 8px 22px rgba(23, 35, 79, 0.06);
+            box-shadow: 0 8px 22px rgba(2, 8, 23, 0.45);
         }
 
         .assistant-avatar-small {
@@ -441,7 +441,7 @@ def inject_styles() -> None:
         .insight-body,
         .insight-body p,
         .insight-body li {
-            color: #1d1d1f !important;
+            color: var(--text) !important;
             font-size: 1rem;
             line-height: 1.7;
         }
@@ -475,8 +475,8 @@ def inject_styles() -> None:
 
         [data-testid="stSidebar"] .stTextInput input {
             border-radius: 18px !important;
-            border: 1px solid #edf1f7 !important;
-            background: #f4f6fb !important;
+            border: 1px solid var(--border) !important;
+            background: #0e1730 !important;
             color: var(--text) !important;
             box-shadow: none !important;
             outline: none !important;
@@ -509,9 +509,9 @@ def inject_styles() -> None:
         }
 
         .stButton > button:hover {
-            border-color: #cbd4e1;
+            border-color: #33518a;
             color: var(--blue);
-            background: #f8fbff;
+            background: #101d3b;
         }
 
         [data-testid="stChatFloatingInputContainer"] {
@@ -521,14 +521,14 @@ def inject_styles() -> None:
             margin: 0 auto 0.35rem !important;
             padding: 0.45rem 0.45rem 0.65rem !important;
             border-radius: 22px !important;
-            background: rgba(247, 248, 251, 0.95) !important;
+            background: rgba(2, 8, 23, 0.88) !important;
             border: none !important;
             box-shadow: none !important;
         }
 
         [data-testid="stBottomBlockContainer"],
         [data-testid="stBottomBlockContainer"] > div {
-            background: #ffffff !important;
+            background: #020817 !important;
             border: none !important;
             box-shadow: none !important;
         }
@@ -546,21 +546,26 @@ def inject_styles() -> None:
 
         [data-testid="stChatInput"] div[data-baseweb="textarea"],
         [data-testid="stChatInput"] div[data-baseweb="base-input"] {
-            border: 1px solid #e3e8f1 !important;
+            border: 1px solid var(--border) !important;
             border-radius: 20px !important;
-            background: #ffffff !important;
-            box-shadow: 0 10px 26px rgba(23, 35, 79, 0.08) !important;
+            background: #0b1225 !important;
+            box-shadow: 0 10px 26px rgba(2, 8, 23, 0.5) !important;
         }
 
         [data-testid="stChatInput"] textarea {
             min-height: 54px !important;
             border-radius: 20px !important;
             border: none !important;
-            background: rgba(14, 17, 23)  !important;
+            background: #0b1225 !important;
             color: var(--text) !important;
             box-shadow: none !important;
             padding: 0.9rem 3.3rem 0.9rem 1.1rem !important;
             line-height: 1.5 !important;
+        }
+
+        [data-testid="stChatInput"] textarea::placeholder {
+            color: var(--subtle) !important;
+            opacity: 1 !important;
         }
 
         [data-testid="stChatInput"] textarea:focus,
@@ -572,8 +577,8 @@ def inject_styles() -> None:
 
         [data-testid="stChatInput"] div[data-baseweb="textarea"]:focus-within,
         [data-testid="stChatInput"] div[data-baseweb="base-input"]:focus-within {
-            border-color: #d6ddea !important;
-            box-shadow: 0 6px 20px rgba(23, 35, 79, 0.08) !important;
+            border-color: #33518a !important;
+            box-shadow: 0 6px 20px rgba(2, 8, 23, 0.5) !important;
             outline: none !important;
         }
 
@@ -581,8 +586,8 @@ def inject_styles() -> None:
             width: 36px !important;
             height: 36px !important;
             border-radius: 999px !important;
-            background: #eef2f8 !important;
-            color: #7c8698 !important;
+            background: #1e3a8a !important;
+            color: #dbeafe !important;
             border: none !important;
         }
 
@@ -602,6 +607,36 @@ def inject_styles() -> None:
             color: var(--text) !important;
         }
 
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] div,
+        [data-testid="stMarkdownContainer"] span,
+        [data-testid="stMarkdownContainer"] li {
+            color: var(--text) !important;
+        }
+
+        [data-testid="stCaptionContainer"] {
+            color: var(--subtle) !important;
+        }
+
+        [data-testid="stCodeBlock"] pre,
+        [data-testid="stCodeBlock"] code {
+            color: #dbeafe !important;
+            background: #081022 !important;
+        }
+
+        [data-testid="stCodeBlock"] {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        [data-testid="stDataFrame"] div[role="gridcell"],
+        [data-testid="stDataFrame"] div[role="columnheader"],
+        [data-testid="stDataFrame"] div[role="rowheader"] {
+            color: var(--text) !important;
+            background: #0b1225 !important;
+        }
+
         .stAlert {
             border-radius: 18px;
         }
@@ -609,7 +644,7 @@ def inject_styles() -> None:
         .stAlert [data-testid="stMarkdownContainer"] p,
         .stAlert [data-testid="stMarkdownContainer"] div,
         .stAlert [data-testid="stMarkdownContainer"] span {
-            color: #1d1d1f !important;
+            color: var(--text) !important;
         }
 
         @media (max-width: 900px) {
