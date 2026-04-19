@@ -757,13 +757,13 @@ def prepare_display_df(df: pd.DataFrame | None) -> pd.DataFrame | None:
 
 def run_sql_pipeline(query_text: str) -> dict:
     sql = generate_sql(query_text)
-    df, sql_error = execute_sql_with_error(sql)
+    df, sql_error = execute_sql_with_error(sql) if sql else (pd.DataFrame(), "Could not generate a SQL query for this question. Please try rephrasing.")
 
     chart = None
     chart_error = None
     if not df.empty:
         try:
-            chart = auto_chart(df)
+            chart = auto_chart(df, query_text)
         except Exception as exc:
             chart_error = str(exc)
 

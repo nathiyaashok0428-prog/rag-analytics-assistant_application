@@ -5,6 +5,8 @@
 import pandas as pd
 import plotly.graph_objects as go
 
+from llm_runtime import call_ollama
+
 
 METRIC_KEYWORDS = [
     "revenue",
@@ -96,7 +98,8 @@ def _prepare_chart_data(df):
     return chart_df
 
 
-def choose_chart_type(df):
+def _choose_chart_type_rules(df):
+    """Rule-based chart type selection used as fallback when LLM is unavailable."""
 
     chart_df = _prepare_chart_data(df)
 
@@ -115,6 +118,61 @@ def choose_chart_type(df):
         return "pie"
 
     return "bar"
+
+
+def _choose_chart_type_llm(df, user_query=""):
+    """Ask the LLM to choose the best chart type for the given data."""
+
+    if df.empty or len(df.columns) < 2:
+        return None
+
+    col_names = ", ".join(str(c) for c in df.columns.tolist())
+    sample_rows = df.head(3).to_string(index=False)
+
+    prompt = f"""You are a data visualization expert.
+
+Given a dataframe with columns: {col_names}
+
+Sample data:
+{sample_rows}
+
+User question context: {user_query or "business analytics query"}
+
+Choose the most appropriate chart type from these options:
+- bar: for comparing categories or ranking items
+- line: for trends over time (dates, months, years)
+- pie: for showing proportional distribution (shares, percentages)
+
+Return ONLY one word: bar, line, or pie
+Do not explain. Do not add punctuation.
+"""
+
+    try:
+        result = call_ollama(prompt, timeout=20)
+        if result:
+            chart_type = result.strip().lower().rstrip(".")
+            if chart_type in {"bar", "line", "pie"}:
+                return chart_type
+    except Exception:
+        pass
+
+    return None
+
+
+def choose_chart_type(df, user_query=""):
+    """Select chart type using LLM first, falling back to rule-based logic."""
+
+    chart_df = _prepare_chart_data(df)
+    if chart_df is None:
+        return None
+
+    # Primary: LLM-based selection (per design document requirement)
+    llm_choice = _choose_chart_type_llm(df, user_query)
+    if llm_choice:
+        return llm_choice
+
+    # Fallback: keyword + column-type heuristics
+    return _choose_chart_type_rules(df)
 
 
 def generate_bar_chart(df):
@@ -184,9 +242,9 @@ def generate_pie_chart(df):
     return _apply_layout(fig, chart_df.columns[0], chart_df.columns[1])
 
 
-def auto_chart(df):
+def auto_chart(df, user_query=""):
 
-    chart_type = choose_chart_type(df)
+    chart_type = choose_chart_type(df, user_query)
 
     if chart_type == "line":
         return generate_line_chart(df)

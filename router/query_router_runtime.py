@@ -71,15 +71,16 @@ User Query:
 
 
 def route_query(user_query):
-    keyword_result = _keyword_route(user_query)
-    if keyword_result != "UNKNOWN":
-        return keyword_result
-
+    # 1. Try LLM first — it is the primary classifier per the design
     try:
-        return _ollama_route(user_query)
+        llm_result = _ollama_route(user_query)
+        if llm_result != "UNKNOWN":
+            return llm_result
     except Exception as error:
-        print("Router Error:", error)
-        return keyword_result
+        print("Router LLM Error:", error)
+
+    # 2. Fall back to keyword matching when LLM is unavailable or uncertain
+    return _keyword_route(user_query)
 
 
 def extract_subquery(user_query, subquery_type):

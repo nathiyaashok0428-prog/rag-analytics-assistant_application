@@ -311,8 +311,6 @@ def sanitize_sql_identifiers(sql):
         # repair bogus prefixes such as ON.column_name.
         return f"{table_name}.{column_name}"
 
-        return match.group(0)
-
     sql = re.sub(
         r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b",
         replace_unknown_alias,
@@ -438,18 +436,6 @@ def sanitize_sql_identifiers(sql):
         flags=re.IGNORECASE,
     )
     sql = re.sub(
-        r"AVG\s*\(\s*oi\.price\s*\)\s+AS\s+average_sale_price",
-        "SUM(oi.price) AS total_sales",
-        sql,
-        flags=re.IGNORECASE,
-    )
-    sql = re.sub(
-        r"AVG\s*\(\s*oi\.price\s*\)\s+AS\s+avg_sale_price",
-        "SUM(oi.price) AS total_sales",
-        sql,
-        flags=re.IGNORECASE,
-    )
-    sql = re.sub(
         r"\bJOIN\s+sellers\s+ON\s+order_items\.seller_id\s*=\s*order_items\.seller_id",
         "JOIN sellers ON order_items.seller_id = sellers.seller_id",
         sql,
@@ -541,7 +527,6 @@ LIMIT 10;
     if any(token in lowered for token in ["top selling products", "best selling products", "top products", "best performers"]):
         return """
 SELECT
-    products.product_id AS product_id,
     products.product_category_name AS product_category,
     COUNT(DISTINCT orders.order_id) AS order_count,
     SUM(order_items.price) AS total_sales
@@ -549,7 +534,7 @@ FROM orders
 JOIN order_items ON orders.order_id = order_items.order_id
 JOIN products ON order_items.product_id = products.product_id
 WHERE orders.order_status IN ('delivered', 'shipped')
-GROUP BY products.product_id, products.product_category_name
+GROUP BY products.product_category_name
 ORDER BY order_count DESC, total_sales DESC
 LIMIT 10;
 """.strip()
@@ -642,47 +627,6 @@ LIMIT 10;
     return None
 
 
-def _preferred_template_sql(user_query):
-
-    lowered = user_query.lower()
-
-    if any(token in lowered for token in ["total number of orders", "total orders", "how many orders", "number of orders"]):
-        return _template_sql_fallback(user_query)
-
-    if any(token in lowered for token in ["average payment value", "avg payment", "mean payment", "average order payment"]):
-        return _template_sql_fallback(user_query)
-
-    if any(token in lowered for token in ["revenue by payment type", "payment type revenue", "total revenue by payment type"]):
-        return _template_sql_fallback(user_query)
-
-    if any(token in lowered for token in ["top selling cities", "top 10 selling cities", "best selling cities", "top cities by sales"]):
-        return _template_sql_fallback(user_query)
-
-    if any(token in lowered for token in ["monthly order volume", "order volume", "monthly orders", "orders per month"]):
-        return _template_sql_fallback(user_query)
-
-    if any(token in lowered for token in ["monthly sales trend", "sales trend", "monthly sales"]):
-        return _template_sql_fallback(user_query)
-
-    if any(token in lowered for token in ["top selling products", "best selling products", "top products", "best performers"]):
-        return _template_sql_fallback(user_query)
-
-    if any(token in lowered for token in ["revenue by category", "category revenue"]):
-        return _template_sql_fallback(user_query)
-
-    if "electronics" in lowered and any(token in lowered for token in ["satisfaction", "review", "rating", "compare"]):
-        return _template_sql_fallback(user_query)
-
-    if any(token in lowered for token in ["seller", "sellers"]) and any(token in lowered for token in ["worst review", "lowest revenue", "lowest sales", "worst reviews"]):
-        return _template_sql_fallback(user_query)
-
-    if any(token in lowered for token in ["delay", "late delivery", "delivery delay"]) and any(
-        token in lowered for token in ["state", "states", "region"]
-    ):
-        return _template_sql_fallback(user_query)
-
-    return None
-
 def _call_ollama(prompt):
 
     return call_ollama(prompt, timeout=45)
@@ -737,20 +681,14 @@ Corrected SQL:
 
 @lru_cache(maxsize=256)
 def _generate_sql_cached(user_query):
-
-    preferred_sql = _preferred_template_sql(user_query)
-    if preferred_sql:
-        preferred_valid, _ = _can_execute_sql(preferred_sql)
-        if preferred_valid:
-            persist_sql_cache(user_query, preferred_sql)
-            return preferred_sql
-
+    # 1. Check persistent cache first (avoids repeated LLM calls for known queries)
     cached_sql = get_cached_sql(user_query)
     if cached_sql:
         cached_valid, _ = _can_execute_sql(cached_sql)
         if cached_valid:
             return cached_sql
 
+    # 2. Call LLM first — this is the primary path
     prompt = f"""
 {SCHEMA}
 
@@ -761,48 +699,42 @@ SQL Query:
 """
 
     llm_response = _call_ollama(prompt)
-    if not llm_response:
-        fallback_sql = _template_sql_fallback(user_query)
-        if fallback_sql:
-            fallback_valid, _ = _can_execute_sql(fallback_sql)
-            if fallback_valid:
-                persist_sql_cache(user_query, fallback_sql)
-                return fallback_sql
 
-        default_sql = "SELECT COUNT(*) AS total_orders FROM orders;"
-        persist_sql_cache(user_query, default_sql)
-        return default_sql
+    if llm_response:
+        sql = sanitize_sql_identifiers(clean_sql_response(llm_response))
+        is_valid, sql_error = _can_execute_sql(sql)
 
-    sql = sanitize_sql_identifiers(clean_sql_response(llm_response))
+        if is_valid:
+            persist_sql_cache(user_query, sql)
+            return sql
 
-    is_valid, sql_error = _can_execute_sql(sql)
-
-    if is_valid:
-        persist_sql_cache(user_query, sql)
-        return sql
-
-    if not is_valid:
+        # 3. LLM gave invalid SQL — ask LLM to repair it
         repaired_sql = repair_sql(user_query, sql, sql_error)
         repaired_valid, _ = _can_execute_sql(repaired_sql)
         if repaired_valid:
             persist_sql_cache(user_query, repaired_sql)
             return repaired_sql
 
-        fallback_sql = _template_sql_fallback(user_query)
-        if fallback_sql:
-            fallback_valid, _ = _can_execute_sql(fallback_sql)
-            if fallback_valid:
-                persist_sql_cache(user_query, fallback_sql)
-                return fallback_sql
+    # 4. LLM unavailable or both LLM attempts failed — use curated template as last resort
+    fallback_sql = _template_sql_fallback(user_query)
+    if fallback_sql:
+        fallback_valid, _ = _can_execute_sql(fallback_sql)
+        if fallback_valid:
+            persist_sql_cache(user_query, fallback_sql)
+            return fallback_sql
 
-    return sql
+    # 5. Nothing worked — return None so the caller can show a proper error
+    return None
 
 
 def generate_sql(user_query):
     cleaned_query = user_query.strip()
     if not cleaned_query:
         return ""
-    return _generate_sql_cached(cleaned_query)
+    result = _generate_sql_cached(cleaned_query)
+    # Return empty string when no SQL could be generated so the caller
+    # can detect the failure and display a proper error to the user.
+    return result if result is not None else ""
 
 
 # ===============================
