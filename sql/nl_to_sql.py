@@ -10,6 +10,8 @@ from functools import lru_cache
 import pandas as pd
 import requests
 
+from llm_runtime import get_ollama_model, get_ollama_url
+
 from sql.executor import execute_sql as run_sql_query
 
 # ===============================
@@ -17,7 +19,8 @@ from sql.executor import execute_sql as run_sql_query
 # ===============================
 
 DB_PATH = "data/ecommerce.db"
-OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_URL = get_ollama_url()
+OLLAMA_MODEL = get_ollama_model()
 SQL_CACHE_PATH = Path("data/sql_query_cache.json")
 TABLE_COLUMNS = {
     "orders": {
@@ -689,10 +692,11 @@ def _call_ollama(prompt):
     response = requests.post(
         OLLAMA_URL,
         json={
-            "model": "mistral",
+            "model": OLLAMA_MODEL,
             "prompt": prompt,
             "stream": False
-        }
+        },
+        timeout=45,
     )
 
     result = response.json()

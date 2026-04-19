@@ -1,6 +1,9 @@
 import requests
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+from llm_runtime import get_ollama_model, get_ollama_url
+
+OLLAMA_URL = get_ollama_url()
+OLLAMA_MODEL = get_ollama_model()
 
 
 def route_query(user_query):
@@ -49,7 +52,7 @@ User Query:
         response = requests.post(
             OLLAMA_URL,
             json={
-                "model": "mistral",
+                "model": OLLAMA_MODEL,
                 "prompt": prompt,
                 "stream": False
             }
@@ -110,7 +113,7 @@ Rewritten Query:
         response = requests.post(
             OLLAMA_URL,
             json={
-                "model": "mistral",
+                "model": OLLAMA_MODEL,
                 "prompt": prompt,
                 "stream": False
             }

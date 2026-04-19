@@ -20,8 +20,11 @@ from router.query_router import (
 
 import requests
 
+from llm_runtime import get_ollama_model, get_ollama_url
+
 # Ollama
-OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_URL = get_ollama_url()
+OLLAMA_MODEL = get_ollama_model()
 
 
 # =========================================
@@ -49,7 +52,7 @@ Answer:
     response = requests.post(
         OLLAMA_URL,
         json={
-            "model": "mistral",
+            "model": OLLAMA_MODEL,
             "prompt": prompt,
             "stream": False
         }

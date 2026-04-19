@@ -100,7 +100,7 @@ For questions requiring both analytics and customer feedback:
 pip install -r requirements.txt
 ```
 
-### 2. Start Ollama
+### 2. Start Ollama (local)
 
 Make sure Ollama is running locally and the `mistral` model is available.
 
@@ -109,6 +109,13 @@ Example:
 ```bash
 ollama run mistral
 ```
+
+Optional runtime environment variables (local or cloud):
+
+- `OLLAMA_URL` (default: `http://localhost:11434/api/generate`)
+- `OLLAMA_MODEL` (default: `mistral`)
+
+If Ollama is unavailable (common on Streamlit Community Cloud), the app still runs with deterministic fallbacks. Translation also falls back to a no-key Google translator implementation.
 
 ### 3. Run the app
 

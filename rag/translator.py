@@ -3,11 +3,18 @@
 # English ↔ Portuguese
 # =========================================
 
-import requests
 import re
+import requests
 
-# Ollama local endpoint
-OLLAMA_URL = "http://localhost:11434/api/generate"
+from llm_runtime import get_ollama_model, get_ollama_url
+
+try:
+    from deep_translator import GoogleTranslator
+except Exception:  # pragma: no cover - optional dependency
+    GoogleTranslator = None
+
+OLLAMA_URL = get_ollama_url()
+OLLAMA_MODEL = get_ollama_model()
 
 
 def clean_translation_output(text):
@@ -28,6 +35,17 @@ def clean_translation_output(text):
 # ENGLISH → PORTUGUESE
 # =========================================
 
+def _translate_with_google(text: str, source: str, target: str) -> str:
+    if not text or GoogleTranslator is None:
+        return text
+
+    try:
+        translated = GoogleTranslator(source=source, target=target).translate(text)
+        return clean_translation_output(translated or text)
+    except Exception:
+        return text
+
+
 def translate_to_portuguese(text):
 
     prompt = f"""
@@ -45,10 +63,11 @@ Text:
         response = requests.post(
             OLLAMA_URL,
             json={
-                "model": "mistral",
+                "model": OLLAMA_MODEL,
                 "prompt": prompt,
                 "stream": False
-            }
+            },
+            timeout=30,
         )
 
         result = response.json()
@@ -57,12 +76,8 @@ Text:
 
         return translated_text
 
-    except Exception as e:
-
-        print("Translation Error:", e)
-
-        # fallback (return original text)
-        return text
+    except Exception:
+        return _translate_with_google(text, source="en", target="pt")
 
 
 # =========================================
@@ -87,10 +102,11 @@ Text:
         response = requests.post(
             OLLAMA_URL,
             json={
-                "model": "mistral",
+                "model": OLLAMA_MODEL,
                 "prompt": prompt,
                 "stream": False
-            }
+            },
+            timeout=30,
         )
 
         result = response.json()
@@ -99,11 +115,9 @@ Text:
 
         return translated_text
 
-    except Exception as e:
-
-        print("Translation Error:", e)
-
-        return text
+    except Exception:
+        # No key required; works in Streamlit Cloud when Ollama is unavailable.
+        return _translate_with_google(text, source="pt", target="en")
 
 
 # =========================================

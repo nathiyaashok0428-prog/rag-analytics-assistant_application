@@ -513,37 +513,41 @@ def inject_styles() -> None:
             background: #f8fbff;
         }
 
-        [data-testid="stBottom"],
-        [data-testid="stBottom"] > div,
-        [data-testid="stChatFloatingInputContainer"],
-        [data-testid="stChatInput"] {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
-
         [data-testid="stChatFloatingInputContainer"] {
-            padding: 0.8rem 1rem 1.2rem !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            padding: 0.9rem 1rem 1.25rem !important;
             background: linear-gradient(
                 180deg,
                 rgba(247, 248, 251, 0) 0%,
                 rgba(247, 248, 251, 0.9) 34%,
                 rgba(247, 248, 251, 1) 100%
             ) !important;
+            border: none !important;
+            box-shadow: none !important;
         }
 
         [data-testid="stChatInput"] > div {
             max-width: 960px;
             margin: 0 auto;
+            width: min(960px, calc(100vw - 2.2rem));
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            display: flex;
+            align-items: center;
         }
 
         [data-testid="stChatInput"] textarea {
+            min-height: 50px !important;
             border-radius: 18px !important;
             border: 1px solid #d8dee8 !important;
             background: #ffffff !important;
             color: var(--text) !important;
             box-shadow: 0 6px 20px rgba(23, 35, 79, 0.06) !important;
             padding-left: 1rem !important;
+            padding-right: 3.1rem !important;
         }
 
         [data-testid="stChatInput"] textarea:focus,
@@ -554,6 +558,8 @@ def inject_styles() -> None:
         }
 
         [data-testid="stChatInput"] button {
+            width: 34px !important;
+            height: 34px !important;
             border-radius: 999px !important;
             background: #eef2f8 !important;
             color: #7c8698 !important;
@@ -593,6 +599,10 @@ def inject_styles() -> None:
 
             .hero-title {
                 font-size: 2.6rem;
+            }
+
+            [data-testid="stChatInput"] > div {
+                width: calc(100vw - 1.2rem);
             }
         }
         </style>

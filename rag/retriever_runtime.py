@@ -43,11 +43,26 @@ def _ensure_loaded() -> None:
 def retrieve_reviews(query, top_k=5):
     _ensure_loaded()
 
+    candidate_queries = [query]
     translated_query = translate_to_portuguese(query)
-    query_embedding = model.encode([translated_query])
+    if translated_query and translated_query.lower() != query.lower():
+        candidate_queries.append(translated_query)
+
+    query_embedding = model.encode(candidate_queries)
     _, indices = index.search(np.array(query_embedding), top_k)
 
-    retrieved_chunks = [chunks[i] for i in indices[0]]
+    retrieved_chunks = []
+    for idx_row in indices:
+        for chunk_idx in idx_row:
+            if 0 <= chunk_idx < len(chunks):
+                candidate_chunk = chunks[chunk_idx]
+                if candidate_chunk not in retrieved_chunks:
+                    retrieved_chunks.append(candidate_chunk)
+            if len(retrieved_chunks) >= top_k:
+                break
+        if len(retrieved_chunks) >= top_k:
+            break
+
     translated_results = []
 
     for chunk in retrieved_chunks:
