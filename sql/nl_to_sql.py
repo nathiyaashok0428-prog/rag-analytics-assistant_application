@@ -8,9 +8,7 @@ import re
 from pathlib import Path
 from functools import lru_cache
 import pandas as pd
-import requests
-
-from llm_runtime import get_ollama_model, get_ollama_url
+from llm_runtime import call_ollama
 
 from sql.executor import execute_sql as run_sql_query
 
@@ -19,8 +17,6 @@ from sql.executor import execute_sql as run_sql_query
 # ===============================
 
 DB_PATH = "data/ecommerce.db"
-OLLAMA_URL = get_ollama_url()
-OLLAMA_MODEL = get_ollama_model()
 SQL_CACHE_PATH = Path("data/sql_query_cache.json")
 TABLE_COLUMNS = {
     "orders": {
@@ -689,19 +685,11 @@ def _preferred_template_sql(user_query):
 
 def _call_ollama(prompt):
 
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": OLLAMA_MODEL,
-            "prompt": prompt,
-            "stream": False
-        },
-        timeout=45,
-    )
+    result = call_ollama(prompt, timeout=45)
+    if result is None:
+        raise RuntimeError("Ollama call failed")
 
-    result = response.json()
-
-    return result["response"]
+    return result
 
 
 def _can_execute_sql(sql_query):

@@ -4,17 +4,13 @@
 # =========================================
 
 import re
-import requests
 
-from llm_runtime import get_ollama_model, get_ollama_url
+from llm_runtime import call_ollama
 
 try:
     from deep_translator import GoogleTranslator
 except Exception:  # pragma: no cover - optional dependency
     GoogleTranslator = None
-
-OLLAMA_URL = get_ollama_url()
-OLLAMA_MODEL = get_ollama_model()
 
 
 def clean_translation_output(text):
@@ -60,21 +56,11 @@ Text:
 
     try:
 
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False
-            },
-            timeout=30,
-        )
+        translated_text = call_ollama(prompt, timeout=30)
+        if translated_text:
+            return clean_translation_output(translated_text)
 
-        result = response.json()
-
-        translated_text = clean_translation_output(result["response"])
-
-        return translated_text
+        return _translate_with_google(text, source="en", target="pt")
 
     except Exception:
         return _translate_with_google(text, source="en", target="pt")
@@ -99,21 +85,11 @@ Text:
 
     try:
 
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False
-            },
-            timeout=30,
-        )
+        translated_text = call_ollama(prompt, timeout=30)
+        if translated_text:
+            return clean_translation_output(translated_text)
 
-        result = response.json()
-
-        translated_text = clean_translation_output(result["response"])
-
-        return translated_text
+        return _translate_with_google(text, source="pt", target="en")
 
     except Exception:
         # No key required; works in Streamlit Cloud when Ollama is unavailable.

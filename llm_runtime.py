@@ -4,9 +4,12 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
+import requests
+
 
 DEFAULT_OLLAMA_URL = "http://localhost:11434/api/generate"
 DEFAULT_OLLAMA_MODEL = "mistral"
+DEFAULT_TIMEOUT_SECONDS = 30
 
 
 def _read_streamlit_secret(name: str) -> str | None:
@@ -40,3 +43,27 @@ def get_ollama_model() -> str:
         or _read_streamlit_secret("OLLAMA_MODEL")
         or DEFAULT_OLLAMA_MODEL
     )
+
+
+def call_ollama(prompt: str, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> str | None:
+    """Call Ollama and return the `response` text when available.
+
+    Returns None when the request fails or an unexpected payload is returned.
+    """
+
+    try:
+        response = requests.post(
+            get_ollama_url(),
+            json={"model": get_ollama_model(), "prompt": prompt, "stream": False},
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception:
+        return None
+
+    content = payload.get("response") if isinstance(payload, dict) else None
+    if content is None:
+        return None
+
+    return str(content).strip()

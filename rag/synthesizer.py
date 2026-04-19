@@ -5,12 +5,7 @@
 
 import textwrap
 
-import requests
-
-from llm_runtime import get_ollama_model, get_ollama_url
-
-OLLAMA_URL = get_ollama_url()
-OLLAMA_MODEL = get_ollama_model()
+from llm_runtime import call_ollama
 
 
 def _looks_weak(answer):
@@ -131,18 +126,8 @@ Answer:
 """
 
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False
-            }
-        )
-
-        result = response.json()
-
-        return result["response"].strip()
+        result = call_ollama(prompt, timeout=45)
+        return result or ""
     except Exception:
         return ""
 
