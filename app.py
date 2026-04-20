@@ -1052,7 +1052,7 @@ def close_result_card() -> None:
     st.markdown("", unsafe_allow_html=True)
 
 
-def render_single_result(result: dict) -> None:
+def render_single_result(result: dict, result_index: int = 0) -> None:
     if not result:
         return
 
@@ -1104,7 +1104,11 @@ def render_single_result(result: dict) -> None:
             st.dataframe(display_df, use_container_width=True)
             if result["fig"] is not None:
                 if hasattr(result["fig"], "to_plotly_json"):
-                    st.plotly_chart(result["fig"], use_container_width=True)
+                    st.plotly_chart(
+                        result["fig"],
+                        use_container_width=True,
+                        key=f"structured-chart-{result_index}",
+                    )
                 else:
                     st.pyplot(result["fig"])
             elif result.get("chart_error"):
@@ -1150,7 +1154,11 @@ def render_single_result(result: dict) -> None:
                 yaxis_title="Count",
             )
             sentiment_chart.update_yaxes(dtick=1)
-            st.plotly_chart(sentiment_chart, use_container_width=True)
+            st.plotly_chart(
+                sentiment_chart,
+                use_container_width=True,
+                key=f"sentiment-chart-{result_index}",
+            )
         close_result_card()
 
     if result["explanation"]:
@@ -1174,13 +1182,13 @@ def render_single_result(result: dict) -> None:
 def render_results() -> None:
     conversation = st.session_state.get("conversation", [])
     if conversation:
-        for item in conversation:
-            render_single_result(item)
+        for idx, item in enumerate(conversation):
+            render_single_result(item, result_index=idx)
         return
 
     result = st.session_state.current_result
     if result:
-        render_single_result(result)
+        render_single_result(result, result_index=0)
 
 
 def main() -> None:
