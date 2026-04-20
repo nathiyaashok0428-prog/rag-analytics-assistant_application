@@ -13,6 +13,20 @@ RAG_KEYWORDS = {
     "quality", "packaging", "satisfaction", "unhappy", "issue", "issues",
     "speed", "late", "damaged", "sentiment", "customer unhappy",
 }
+RAG_STEMS = {
+    "complain",
+    "complaint",
+    "feedback",
+    "review",
+    "deliver",
+    "satisf",
+    "unhappy",
+    "issue",
+    "problem",
+    "damag",
+    "late",
+    "sentiment",
+}
 
 
 def _normalize(text: str) -> str:
@@ -31,8 +45,14 @@ def _keyword_route(user_query: str) -> str:
     if not _looks_meaningful(query):
         return "UNKNOWN"
 
+    query_tokens = re.findall(r"[a-zA-Z]+", query)
     sql_hits = sum(keyword in query for keyword in SQL_KEYWORDS)
     rag_hits = sum(keyword in query for keyword in RAG_KEYWORDS)
+    rag_stem_hits = sum(
+        any(token.startswith(stem) for token in query_tokens)
+        for stem in RAG_STEMS
+    )
+    rag_hits += rag_stem_hits
 
     if sql_hits and rag_hits:
         return "HYBRID"
