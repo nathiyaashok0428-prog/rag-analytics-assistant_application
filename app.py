@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from bootstrap_assets import ensure_runtime_assets
+from llm_runtime import call_ollama
 
 
 st.set_page_config(
@@ -52,6 +53,20 @@ PROMPT_CARDS = [
         "icon": "&#128230;",
     },
 ]
+
+FOLLOW_UP_HINTS = {
+    "related",
+    "same",
+    "that",
+    "those",
+    "previous",
+    "above",
+    "earlier",
+    "also",
+    "instead",
+    "compare",
+    "breakdown",
+}
 
 def init_state() -> None:
     defaults = {
@@ -797,8 +812,58 @@ def run_rag_pipeline(query_text: str) -> dict:
     }
 
 
+def resolve_contextual_query(user_query: str) -> str:
+    """
+    Rewrite follow-up requests into a standalone business query using the
+    previous turn as context.
+    """
+    current = user_query.strip()
+    if not current:
+        return current
+
+    conversation = st.session_state.get("conversation", [])
+    if not conversation:
+        return current
+
+    previous_query = str(conversation[-1].get("query", "")).strip()
+    if not previous_query:
+        return current
+
+    normalized = current.lower()
+    token_count = len(normalized.split())
+    looks_follow_up = (
+        token_count <= 8
+        or any(hint in normalized for hint in FOLLOW_UP_HINTS)
+    )
+    if not looks_follow_up:
+        return current
+
+    prompt = f"""
+Turn a follow-up analytics question into a standalone question.
+
+Previous user question:
+{previous_query}
+
+Follow-up user question:
+{current}
+
+Rules:
+- Keep filters, measures, and dimensions from the follow-up
+- Reuse relevant context from the previous question only when needed
+- Return one standalone question in plain English
+- Do not explain
+"""
+    rewritten = call_ollama(prompt, timeout=25)
+    if not rewritten:
+        return current
+
+    rewritten = rewritten.strip().strip('"')
+    return rewritten or current
+
+
 def run_query(user_query: str, update_history: bool = True) -> None:
-    route = route_query(user_query)
+    resolved_query = resolve_contextual_query(user_query)
+    route = route_query(resolved_query)
 
     if route == "UNKNOWN":
         result = {
@@ -819,9 +884,9 @@ def run_query(user_query: str, update_history: bool = True) -> None:
         result = build_base_result(user_query, route)
 
         if route in {"SQL", "HYBRID"}:
-            sql_prompt = user_query
+            sql_prompt = resolved_query
             if route == "HYBRID":
-                sql_prompt = extract_subquery(user_query, "SQL")
+                sql_prompt = extract_subquery(resolved_query, "SQL")
 
             result["sql_query_text"] = sql_prompt
             result.update(run_sql_pipeline(sql_prompt))
@@ -834,27 +899,27 @@ def run_query(user_query: str, update_history: bool = True) -> None:
                     )
                 else:
                     result["explanation"] = (
-                        synthesize_sql_result(user_query, result["df"])
+                        synthesize_sql_result(resolved_query, result["df"])
                         if not result["df"].empty
                         else "No data returned for this query."
                     )
 
         if route in {"RAG", "HYBRID"}:
-            rag_prompt = user_query
+            rag_prompt = resolved_query
             if route == "HYBRID":
-                rag_prompt = extract_subquery(user_query, "RAG")
+                rag_prompt = extract_subquery(resolved_query, "RAG")
 
             result["rag_query_text"] = rag_prompt
             result.update(run_rag_pipeline(rag_prompt))
             if route == "RAG":
                 result["explanation"] = synthesize_rag_result(
-                    user_query,
+                    resolved_query,
                     result["reviews"],
                     result["themes"],
                 )
             else:
                 result["explanation"] = synthesize_hybrid_result(
-                    user_query,
+                    resolved_query,
                     result["df"],
                     result["reviews"],
                     result["themes"],
